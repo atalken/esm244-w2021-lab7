@@ -1,5 +1,5 @@
 ---
-title: "lab7_part 2"
+title: "Hobbit text analysis"
 author: "Anna Talken"
 date: "2/18/2021"
 output: html_document
@@ -7,24 +7,68 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(tidytext)
+library(textdata)
+library(pdftools)
+library(ggwordcloud)
 ```
 
-## R Markdown
+```{r, cache = TRUE}
+hobbit_text <- pdf_text("the-hobbit.pdf")
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+hobbit_text_p34 <- hobbit_text[34]
 ```
 
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+### Turn hobbit data into tidy data
+```{r}
+hobbit_tidy <- data.frame(hobbit_text) %>% #turn text pdf into a data frame
+  mutate(text_full = str_split(hobbit_text, pattern = "\\n")) %>% #first slash, assume everything after is a normal character. creates a series of strings where each line is a new element
+  unnest(text_full) %>% #each individual line has its own line in the data frame
+  mutate(text_full = str_trim(text_full)) #gets rid of excess white spaces
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+### Create a new subset organizing the text based on chapter
+
+```{r}
+hobbit_df <- hobbit_tidy %>% 
+  slice(-(1:125)) %>% # removing rows 1-125 to start at Chapter 1 on page 126
+  mutate(chapter = case_when(
+    str_detect(text_full, pattern = "Chapter") ~ text_full, 
+    TRUE ~ NA_character_
+  )) %>% # creates a new column called 'chapter' where if I detect in the text_full column the pattern 'Chapter', then excatly what is in the existing column will be in the new 'Chapter' column, everything else that doesnt have 'chapter' is considered NA in the new column
+  fill(chapter) %>% #fills every NA value with the chapter above it
+  separate(col = chapter, into = c("ch", "no"), sep = " ") %>% #separate chapter column in "ch" and "no" separated by a space " "
+  mutate(chapter = as.numeric(as.roman(no)))
+```
+
+### 
+
+```{r}
+hobbit_tokens <- hobbit_df %>% 
+  
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
