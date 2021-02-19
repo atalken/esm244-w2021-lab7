@@ -46,17 +46,97 @@ hobbit_df <- hobbit_tidy %>%
 
 ```{r}
 hobbit_tokens <- hobbit_df %>% 
-  
+  unnest_tokens(word, text_full) %>% #creates new column called 'word' that unnests tokens from 'text_full"
+  dplyr::select(-hobbit_text) # get rid of hobbit_text column
+
+
+hobbit_wordcount <- hobbit_tokens %>% 
+  count(chapter, word) #counts how many times words were used in each chapter
+
+
+```
+
+### Remove all stop_words that exist in hobbit_tokens
+
+```{r}
+hobbit_nonstop_words <-hobbit_tokens %>% 
+  anti_join(stop_words) #get rid of all stop words
+
+nonstop_counts <- hobbit_nonstop_words %>% 
+  count(chapter, word)
+
 ```
 
 
+### Find top 5 words for each chapter
+
+```{r}
+#shows top 5 words for each chapter
+top_5_words <- nonstop_counts %>% 
+  group_by(chapter) %>% 
+  arrange(-n) %>% #arranges from most to least
+  slice(1:5)
+
+ggplot(data = top_5_words, aes(x = word, y = n)) +
+  geom_col(fill = "blue") +
+  facet_wrap(~chapter, scales = "free") + coord_flip()#scales = free means that the scale for each graph does NOT need to be the same
+```
 
 
+```{r}
+ch1_top100 <- nonstop_counts %>% 
+  filter(chapter == 1) %>% 
+  arrange(-n) %>% 
+  slice(1:100)
+
+ch1_cloud <- ggplot(data = ch1_top100, aes(label = word)) +
+  geom_text_wordcloud(aes(color = n, size = n)) +
+  scale_size_area(max_size = 6)
+
+ch1_cloud
+```
+
+## Sentiment Analysis 
+
+```{r}
+afinn_pos <- get_sentiments("afinn") %>% 
+  filter(value > 2)
+```
 
 
+### With `affin`
+
+```{r}
+hobbit_afinn <- hobbit_nonstop_words %>% 
+  inner_join(get_sentiments("afinn")) #attaches an affin value to each word in the Hobbit
+
+afinn_counts <- hobbit_afinn %>% 
+  count(chapter, value) #shows how many times in each chapter there are words that score as -1, -2, -3, etc....
+
+afinn_means <- hobbit_afinn %>% 
+  group_by(chapter) %>% 
+  summarize(mean_afinn = mean(value)) #finding mean afinn vlaue for each chapter
+
+ggplot(data = afinn_means, aes(x = chapter, y = mean_afinn)) +
+  geom_col() +
+  coord_flip()
+```
+
+### Now look using NRC lexicon
+
+```{r}
+hobbit_nrc <- hobbit_nonstop_words %>% 
+  inner_join(get_sentiments("nrc"))
 
 
+hobbit_nrc_counts <- hobbit_nrc %>% 
+  count(chapter, sentiment)
 
+ggplot(data = hobbit_nrc_counts, aes(x = sentiment, y = n)) +
+  geom_col() +
+  facet_wrap(~chapter) +
+  coord_flip()
+```
 
 
 
